@@ -1,0 +1,9 @@
+server:
+  port: 8080
+link:
+    baseUrl: "http://localhost:8081/api/v1/fine/"
+    fineRequest: "/request"
+    fineResult: "/result"
+    fineAcknowledge: "/acknowledge"
+    timeout: 10000
+    retryCount: 3
