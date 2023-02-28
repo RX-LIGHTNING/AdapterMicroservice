@@ -17,6 +17,7 @@ import reactor.util.retry.Retry;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -28,10 +29,10 @@ public class AdapterServiceImpl implements AdapterService {
 
 
     public List<FineResponse> requestFineFromSMEV(FineRequest fineRequest) {
-            FineRequest request = requestFine(fineRequest).block();
-            List<FineResponse> fineResponse = getResult(request).block();
-            sendAcknowledge(fineResponse).block();
-            return fineResponse;
+        FineRequest request = requestFine(fineRequest).block();
+        List<FineResponse> fineResponse = getResult(fineRequest.getUuid()).block();
+        sendAcknowledge(request.getUuid()).block();
+        return fineResponse;
     }
 
     public Mono<FineRequest> requestFine(FineRequest fineRequest) {
@@ -46,10 +47,10 @@ public class AdapterServiceImpl implements AdapterService {
                 .bodyToMono(FineRequest.class);
     }
 
-    public Mono<List<FineResponse>> getResult(FineRequest fineRequest) {
+    public Mono<List<FineResponse>> getResult(UUID uuid) {
         return webClient.post()
                 .uri(adapterConfig.getFineResult())
-                .body(BodyInserters.fromValue(fineRequest))
+                .body(BodyInserters.fromValue(uuid))
                 .retrieve()
                 .onStatus(HttpStatus::is4xxClientError,
                         error -> Mono.error(new RuntimeException("API not found")))
@@ -59,10 +60,10 @@ public class AdapterServiceImpl implements AdapterService {
                 .retryWhen(Retry.fixedDelay(adapterConfig.getRetryCount(), Duration.ofSeconds(3)));
     }
 
-    public Mono<ResponseEntity> sendAcknowledge(List<FineResponse> fineResponse) {
+    public Mono<ResponseEntity> sendAcknowledge(UUID uuid) {
         return webClient.post()
                 .uri(adapterConfig.getFineAcknowledge())
-                .body(BodyInserters.fromValue(fineResponse))
+                .body(BodyInserters.fromValue(uuid))
                 .retrieve()
                 .onStatus(HttpStatus::is4xxClientError,
                         error -> Mono.error(new RuntimeException("API not found")))
