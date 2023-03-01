@@ -28,14 +28,14 @@ public class AdapterServiceImpl implements AdapterService {
     private final WebClient webClient;
 
 
-    public List<FineResponse> requestFineFromSMEV(FineRequest fineRequest) {
-        FineRequest request = requestFine(fineRequest).block();
-        List<FineResponse> fineResponse = getResult(fineRequest.getUuid()).block();
+    public List<FineResponse> requestFineFromSMEV(FineRequest request) {
+        requestFine(request).block();
+        List<FineResponse> fineResponse = getResult(request.getUuid()).block();
         sendAcknowledge(request.getUuid()).block();
         return fineResponse;
     }
 
-    public Mono<FineRequest> requestFine(FineRequest fineRequest) {
+    public Mono<HttpStatus> requestFine(FineRequest fineRequest) {
         return webClient.post()
                 .uri(adapterConfig.getFineRequest())
                 .body(BodyInserters.fromValue(fineRequest))
@@ -44,13 +44,14 @@ public class AdapterServiceImpl implements AdapterService {
                         error -> Mono.error(new RuntimeException("API not found")))
                 .onStatus(HttpStatus::is5xxServerError,
                         error -> Mono.error(new SMEVException("Server is not responding")))
-                .bodyToMono(FineRequest.class);
+                .bodyToMono(HttpStatus.class);
     }
 
     public Mono<List<FineResponse>> getResult(UUID uuid) {
-        return webClient.post()
-                .uri(adapterConfig.getFineResult())
-                .body(BodyInserters.fromValue(uuid))
+        return webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path(adapterConfig.getFineResult())
+                        .build(uuid))
                 .retrieve()
                 .onStatus(HttpStatus::is4xxClientError,
                         error -> Mono.error(new RuntimeException("API not found")))
@@ -60,15 +61,16 @@ public class AdapterServiceImpl implements AdapterService {
                 .retryWhen(Retry.fixedDelay(adapterConfig.getRetryCount(), Duration.ofSeconds(3)));
     }
 
-    public Mono<ResponseEntity> sendAcknowledge(UUID uuid) {
-        return webClient.post()
-                .uri(adapterConfig.getFineAcknowledge())
-                .body(BodyInserters.fromValue(uuid))
+    public Mono<HttpStatus> sendAcknowledge(UUID uuid) {
+       return webClient.delete()
+                .uri(uriBuilder -> uriBuilder
+                        .path(adapterConfig.getFineAcknowledge())
+                        .build(uuid))
                 .retrieve()
                 .onStatus(HttpStatus::is4xxClientError,
                         error -> Mono.error(new RuntimeException("API not found")))
                 .onStatus(HttpStatus::is5xxServerError,
                         error -> Mono.error(new RuntimeException("Server is not responding")))
-                .bodyToMono(ResponseEntity.class);
+                .bodyToMono(HttpStatus.class);
     }
 }
