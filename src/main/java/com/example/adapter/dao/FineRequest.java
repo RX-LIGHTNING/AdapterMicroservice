@@ -7,7 +7,6 @@ import lombok.Data;
 import javax.validation.constraints.Pattern;
 import java.util.UUID;
 
-// TODO: 10.02.2023 Validation 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Data
 public class FineRequest {
