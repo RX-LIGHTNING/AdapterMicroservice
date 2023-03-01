@@ -7,3 +7,5 @@ link:
     fineAcknowledge: "/acknowledge"
     timeout: 10000
     retryCount: 3
+pom:
+  version: @project.version@
