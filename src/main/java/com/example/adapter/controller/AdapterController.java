@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -20,7 +21,7 @@ public class AdapterController {
     private final AdapterService adapterService;
 
     @GetMapping("/fine/request")
-    public ResponseEntity<List<FineResponse>> getFine(@RequestBody FineRequest fineRequest) {
+    public ResponseEntity<List<FineResponse>> getFine(@Valid @RequestBody FineRequest fineRequest) {
         return ResponseEntity.ok(adapterService.requestFineFromSMEV(fineRequest));
     }
 }
