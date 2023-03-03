@@ -49,9 +49,7 @@ public class AdapterServiceImpl implements AdapterService {
 
     public Mono<List<FineResponse>> getResult(UUID uuid) {
         return webClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path(adapterConfig.getFineResult())
-                        .build(uuid))
+                .uri(adapterConfig.getFineResult(),uuid)
                 .retrieve()
                 .onStatus(HttpStatus::is4xxClientError,
                         error -> Mono.error(new RuntimeException("API not found")))
@@ -63,9 +61,7 @@ public class AdapterServiceImpl implements AdapterService {
 
     public Mono<HttpStatus> sendAcknowledge(UUID uuid) {
        return webClient.delete()
-                .uri(uriBuilder -> uriBuilder
-                        .path(adapterConfig.getFineAcknowledge())
-                        .build(uuid))
+                .uri(adapterConfig.getFineAcknowledge(),uuid)
                 .retrieve()
                 .onStatus(HttpStatus::is4xxClientError,
                         error -> Mono.error(new RuntimeException("API not found")))
