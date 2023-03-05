@@ -11,6 +11,7 @@ import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -19,6 +20,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -34,20 +36,14 @@ class AdapterServiceTest {
     private AdapterServiceImpl adapterService;
 
     @Autowired
-    private AdapterConfig adapterConfig;
-
-    @Autowired
     private static MockWebServer mockBackEnd;
 
     private UUID uuid = UUID.randomUUID();
 
-    @PostConstruct
-    void setUp() throws IOException {
-        //starting mock server
+    @BeforeAll
+    static void setUp() throws IOException {
         mockBackEnd = new MockWebServer();
-        mockBackEnd.start();
-        //setting base url of mock web server, as a base url into yaml configuration file
-        adapterConfig.setBaseUrl(String.valueOf(mockBackEnd.url("")));
+        mockBackEnd.start(InetAddress.getByName("localhost"),8081);
     }
 
     @AfterAll
@@ -65,14 +61,12 @@ class AdapterServiceTest {
         mockBackEnd.enqueue(new MockResponse()
                 .setResponseCode(200));
 
-        HttpUrl fineRequestUrl = mockBackEnd.url("/request");
-        adapterConfig.setFineRequest(String.valueOf(fineRequestUrl));
         adapterService.requestFine(fineRequest).block();
 
         RecordedRequest request = mockBackEnd.takeRequest();
 
         assertEquals("POST", request.getMethod());
-        assertEquals("/request", request.getPath());
+        assertEquals("/api/v1/fine/request", request.getPath());
     }
 
     @Test
@@ -93,16 +87,14 @@ class AdapterServiceTest {
                 .addHeader(CONTENT_TYPE, "application/json")
                 .setBody(Mapper.mapToJson(resultList)));
 
-        //creating mock path
-        HttpUrl fineResultUrl = mockBackEnd.url("/result/" + uuid);
-        adapterConfig.setFineResult(String.valueOf(fineResultUrl));
-        adapterService.getResult(uuid).block();
+        List<FineResponse> fineResponseFromMock = adapterService.getResult(uuid).block();
 
         //asserting results
         RecordedRequest request = mockBackEnd.takeRequest();
 
         assertEquals("GET", request.getMethod());
-        assertEquals("/result/" + uuid, request.getPath());
+        assertEquals("/api/v1/fine/result/" + uuid, request.getPath());
+        assertEquals(resultList, fineResponseFromMock);
     }
 
     @Test
@@ -111,14 +103,12 @@ class AdapterServiceTest {
         mockBackEnd.enqueue(new MockResponse()
                 .setResponseCode(200));
 
-        HttpUrl fineRequestUrl = mockBackEnd.url("/acknowledge/" + uuid);
-        adapterConfig.setFineAcknowledge(String.valueOf(fineRequestUrl));
         adapterService.sendAcknowledge(uuid).block();
 
         RecordedRequest request = mockBackEnd.takeRequest();
 
         assertEquals("DELETE", request.getMethod());
-        assertEquals("/acknowledge/" + uuid, request.getPath());
+        assertEquals("/api/v1/fine/acknowledge/" + uuid, request.getPath());
 
     }
 }
